@@ -33,12 +33,27 @@ entitlements. The game then starts normally (Steam, Finder) with notch fill and 
 game is in full screen, the menu bar does not slide down at the top edge; use the
 rear-view mirror to see what is behind the notch.
 
-## Requirements
+## Install
 
-- MacBook with a notch, macOS 14 or later (tested on macOS 27.2).
-- Command Line Tools (`xcode-select --install`). Xcode is not needed.
+1. Download `NotchFill-<version>.zip` from [Releases](https://github.com/squallsama/NotchFill/releases) and unzip it.
+2. Move `NotchFill.app` to `/Applications` (the Steam launch option points to the app's location).
+3. The app is **not signed with an Apple Developer ID and not notarized**, so macOS blocks the
+   first launch. Do one of these:
+   - Open it once, then go to **System Settings › Privacy & Security** and click **Open Anyway**.
+   - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/NotchFill.app`
+4. NotchFill shows a laptop icon in the menu bar.
 
-## Build and run
+Requirements: MacBook with a notch (Apple silicon), macOS 14 or later (tested on macOS 27.2).
+
+## Uninstall
+
+Quit NotchFill, delete `/Applications/NotchFill.app` and
+`~/Library/Application Support/NotchFill`. Restore any game you patched first
+(`scripts/patch-game.py restore`). Remove NotchFill's Launch Options in Steam.
+
+## Build from source
+
+Needs the Command Line Tools (`xcode-select --install`). Xcode is not needed.
 
 ```bash
 ./scripts/create-dev-cert.sh   # once: local signing identity, keeps permissions between builds
@@ -48,6 +63,9 @@ open build/NotchFill.app
 
 `create-dev-cert.sh` adds a self-signed "NotchFill Dev" identity to your login keychain.
 Without it the app is signed ad-hoc, and macOS asks for permissions again after each build.
+
+Release: `scripts/release.sh 0.1.0` builds `build/release/NotchFill-0.1.0.zip` (ad-hoc signed,
+no local paths inside); add `--publish` to tag `v0.1.0` and create the GitHub release.
 
 ## Diagnostics
 

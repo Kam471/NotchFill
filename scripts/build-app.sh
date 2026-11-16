@@ -6,7 +6,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="${CONFIG:-release}"
-swift build -c "$CONFIG"
+# SWIFT_EXTRA_FLAGS: extra `swift build` arguments (scripts/release.sh uses it); split on spaces.
+# shellcheck disable=SC2086
+swift build -c "$CONFIG" ${SWIFT_EXTRA_FLAGS:-}
 
 APP="build/NotchFill.app"
 rm -rf "$APP"
