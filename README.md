@@ -33,6 +33,23 @@ entitlements. The game then starts normally (Steam, Finder) with notch fill and 
 game is in full screen, the menu bar does not slide down at the top edge; use the
 rear-view mirror to see what is behind the notch.
 
+### Games that keep 16:9
+
+Some games letterbox the picture to 16:9 by themselves. The window then covers the whole
+screen, but the game draws bars at the top and bottom (the screen with the strip is about
+1.55:1). NotchFill cannot change that from outside; look for a community widescreen fix for
+the game (for example [UltrawideIndex](https://github.com/RoseTheFlower/UltrawideIndex) or
+[WSGF](https://www.wsgf.org)). Fixes for wider screens often also remove bars on taller ones.
+
+Example: Silent Hill 2 (2024) through Steam with a Wine-based runner. Its fix is an ASI mod
+loaded by a `dsound.dll` in the game folder, so Wine must use that file instead of its own:
+
+```
+WINEDLLOVERRIDES="dsound=n,b" "/Applications/NotchFill.app/Contents/MacOS/notchfill-run" %command%
+```
+
+With the fix and NotchFill the game fills the whole screen, strip included.
+
 ## Install
 
 1. Download `NotchFill-<version>.zip` from [Releases](https://github.com/squallsama/NotchFill/releases) and unzip it.
