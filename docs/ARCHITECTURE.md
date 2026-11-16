@@ -1,0 +1,40 @@
+# Architecture
+
+Menu bar app (`LSUIElement`), Swift, SwiftPM, macOS 14+. No Xcode project:
+`scripts/build-app.sh` builds the `.app` bundle and signs it.
+
+## Modules (`Sources/NotchFill`)
+
+| File | Role |
+|------|------|
+| `main.swift`, `AppDelegate.swift` | App start, status menu, settings (UserDefaults), diagnostics args. |
+| `NotchGeometry.swift` | Finds the notched screen; notch rect from `safeAreaInsets` + `auxiliaryTopLeft/RightArea` widths; coordinate conversion. |
+| `SDLMode.swift` | `launchctl setenv/unsetenv SDL_VIDEO_MAC_FULLSCREEN_SPACES`. |
+| `SystemChrome.swift` | Menu bar auto-hide (`_HIHideMenuBar` + `AppleInterfaceMenuBarHidingChangedNotification`), Dock auto-hide (private `CoreDockSet/GetAutoHideEnabled`). Saves originals in UserDefaults; restores on quit and on next launch. |
+| `NotchMirror.swift` | ScreenCaptureKit stream of the notch rect (+16 pt each side, pointer on), shown 2× in a click-through panel below the notch while the pointer is in the notch. Panel level: shielding level + 1. |
+| `HotKey.swift` | Carbon global hot keys (no permission). |
+| `Toast.swift` | Short on-screen messages. |
+| `GameLauncher.swift` | Launch a game through `notchfill-run`; Steam launch option text; hardened-runtime / platform check. |
+| `DisplaySnapshot.swift` | Diagnostics: ScreenCaptureKit screenshot of the display. |
+
+## Game hook (`Hook/`)
+
+| File | Role |
+|------|------|
+| `NotchFillHook.m` | Universal (arm64 + x86_64) dylib. Swizzles `-[NSWindow _frameForFullScreenMode]` / `_frameForFullScreenModeInRect:` to reach the screen top; on full screen enter puts the window at `kCGMainMenuWindowLevel + 1`, restores the level on exit. Reports `-[NSScreen safeAreaInsets].top = 0` (engines with their own full screen, e.g. Unity). With `NOTCHFILL_RESOLUTION` and `UnityPlayer.dylib` in the main bundle, writes Unity's `Screenmanager Resolution Width/Height`. `NOTCHFILL_DISABLE=1` turns it off. |
+| `notchfill-run.c` | `--resolution WxH`: if the bundle (also nested wrapper apps) has `UnityPlayer.dylib`, appends `-screen-width W -screen-height H`; sets `NOTCHFILL_RESOLUTION`. Sets `DYLD_INSERT_LIBRARIES` to the bundled hook and `execv`s the game (.app or executable). Needed because `/bin/sh` strips `DYLD_*`. |
+| `scripts/patch-game.py` | For hardened games: backup → add `LC_LOAD_WEAK_DYLIB` to the hook in `~/Library/Application Support/NotchFill/` → ad-hoc re-sign with own entitlements; `restore` puts the originals back. |
+
+Bundle layout: `Contents/MacOS/{NotchFill,notchfill-run}`, `Contents/Resources/libNotchFillHook.dylib`. Hook and launcher are signed without hardened runtime.
+
+## Permissions
+
+- Screen Recording: mirror only.
+- Stable code signature (`scripts/create-dev-cert.sh`) so TCC grants survive rebuilds.
+
+## Technical constraints (measured, see RESEARCH.md)
+
+- The Dock gives the full screen tile the whole display; AppKit cuts it in `_frameForFullScreenMode` (in-process, so a hook can undo it).
+- In full screen, WindowServer's black `Menubar` window (level 24) covers the strip; a window at level 25 is above it.
+- AppKit clamps Accessibility position/size to `visibleFrame`, which excludes the strip.
+- A borderless window that the app itself sizes to `screen.frame` covers the strip.
